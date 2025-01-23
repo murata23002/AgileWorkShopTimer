@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agile Timer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        #timer {
+            text-align: center;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        #time {
+            font-size: 10em;
+            margin: 30px 0;
+            color: #9f8ee8;
+        }
+
+        #startStopButton {
+            font-size: 1.5em;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #startStopButton:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="timer">
+        <h2 id="iteration">Iteration: <span id="currentIterationValue">1</span>/<span id="totalIterationsValue">4</span>
+        </h2>
+        <h2 id="time">00:00</h2>
+        <h1 id="task">Task</h1>
+        <h3 id="teamName"></h3>
+        <button id="startStopButton">Start</button>
+    </div>
+
+    <script>
+        const START_BUTTON_COLOR = '#e74c3c';
+        const STOP_BUTTON_COLOR = '#4caf50';
+
+        class AgileTimer {
+            constructor() {
+                this.teams = ['Team A', 'Team B'];
+                this.currentTaskIndex = 0;
+                this.currentIteration = 1;
+                this.totalIterations = 4;
+                this.currentTeamIndex = 0;
+                this.duration = 0;
+                this.timer = null;
+                this.isTimerRunning = false;
+                this.taskData = [
+                    { name: '計画をする', baseDuration: 2, repeatForTeams: false, showTeamName: false },
+                    { name: '成功機体の予想発表', baseDuration: 1, repeatForTeams: true, showTeamName: true },
+                    { name: '実行', baseDuration: 3, repeatForTeams: false, showTeamName: false },
+                    { name: '実績発表', baseDuration: 1, repeatForTeams: true, showTeamName: true },
+                    { name: '振り返り', baseDuration: 2, repeatForTeams: false, showTeamName: false },
+                    { name: '振り返り発表', baseDuration: 1, repeatForTeams: true, showTeamName: true },
+                ];
+            }
+
+            playSound() {
+                const audio = new Audio('task_end.mp3');
+                audio.play();
+            }
+
+            startTimer() {
+                let duration = this.getCurrentTaskDuration();
+                const timerElement = document.getElementById('time');
+                const taskElement = document.getElementById('task');
+                const teamNameElement = document.getElementById('teamName');
+                const currentIterationValue = document.getElementById('currentIterationValue');
+
+                let minutes, seconds;
+                this.timer = setInterval(() => {
+                    if (!this.isTimerRunning) return;
+
+                    minutes = parseInt(duration / 60, 10);
+                    seconds = parseInt(duration % 60, 10);
+
+                    minutes = minutes < 10 ? "0" + minutes : minutes;
+                    seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                    timerElement.textContent = `${minutes}:${seconds}`;
+                    taskElement.textContent = this.taskData[this.currentTaskIndex].name;
+
+                    if (this.taskData[this.currentTaskIndex].showTeamName) {
+                        teamNameElement.textContent = this.teams[this.currentTeamIndex];
+                    } else {
+                        teamNameElement.textContent = '';
+                    }
+
+                    if (--duration < 0) {
+                        this.playSound();
+                        this.switchTask(currentIterationValue);
+                        duration = this.getCurrentTaskDuration();
+                    }
+                }, 1000);
+            }
+
+            switchTask(currentIterationValue) {
+                // チームのインデックスを進める
+                if (this.taskData[this.currentTaskIndex].repeatForTeams && this.currentTeamIndex < this.teams.length - 1) {
+                    this.currentTeamIndex++;
+                    return;
+                } else {
+                    this.currentTeamIndex = 0;
+                }
+
+                // タスクのインデックスを進める
+                if (this.currentTaskIndex < this.taskData.length - 1) {
+                    this.currentTaskIndex++;
+                } else {
+                    this.currentTaskIndex = 0;
+                    this.currentTeamIndex = 0;
+                    this.currentIteration++;
+                    currentIterationValue.textContent = this.currentIteration;
+
+                    if (this.currentIteration > this.totalIterations) {
+                        this.currentIteration = 1;
+                        this.startStopTimer();
+                        currentIterationValue.textContent = this.currentIteration;
+                   }
+                }
+
+            }
+
+            startStopTimer() {
+                const startStopButton = document.getElementById('startStopButton');
+                if (this.isTimerRunning) {
+                    this.isTimerRunning = false;
+                    startStopButton.textContent = 'Start';
+                } else {
+                    this.isTimerRunning = true;
+                    startStopButton.textContent = 'Stop';
+                }
+
+                // ボタンの色を変更
+                startStopButton.style.backgroundColor = this.isTimerRunning ? START_BUTTON_COLOR : STOP_BUTTON_COLOR;
+            }
+
+            getCurrentTaskDuration() {
+                return this.taskData[this.currentTaskIndex].baseDuration * 60;
+            }
+        }
+
+        const agileTimer = new AgileTimer();
+        const totalIterations = document.getElementById('totalIterationsValue');
+        totalIterations.textContent = agileTimer.totalIterations;
+        agileTimer.startTimer();
+
+        // Event listener for the button
+        const startStopButton = document.getElementById('startStopButton');
+        startStopButton.addEventListener('click', () => {
+            agileTimer.startStopTimer();
+        });
+    </script>
+
+</body>
+
+</html>
